@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>quad sim tests</title>
+<pre id="out">running...</pre>
+<script type="module">
+  import { cases } from "./cases.js";
+  const lines = [];
+  let failed = 0;
+  for (const [name, fn] of cases) {
+    try { fn(); lines.push(`ok    ${name}`); }
+    catch (e) { failed++; lines.push(`FAIL  ${name}: ${e.message}`); }
+  }
+  lines.push("", failed ? `${failed} failed` : `all ${cases.length} passed`);
+  document.getElementById("out").textContent = lines.join("\n");
+</script>
