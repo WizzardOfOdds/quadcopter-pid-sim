@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quadcopter PID Sim</title>
+<meta name="description" content="Tune the cascaded PID controllers of a 2D quadcopter in the browser.">
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #deded8;
+    --accent: #1f6feb; --target: #d1242f; --good: #1a7f37; --plot-a: #1f6feb; --plot-b: #bf5b04;
+    --sky: #eef3f8; --ground: #cfd6cc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --panel: #1d1d1b; --ink: #ecece8; --muted: #9a9a93; --line: #34342f;
+      --accent: #58a6ff; --target: #ff7b72; --good: #3fb950; --plot-a: #58a6ff; --plot-b: #f0883e;
+      --sky: #1a1f26; --ground: #2b3229;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --panel: #1d1d1b; --ink: #ecece8; --muted: #9a9a93; --line: #34342f;
+    --accent: #58a6ff; --target: #ff7b72; --good: #3fb950; --plot-a: #58a6ff; --plot-b: #f0883e;
+    --sky: #1a1f26; --ground: #2b3229;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 40px; }
+  header h1 { font-size: 20px; margin: 0 0 2px; }
+  header p { margin: 0 0 16px; color: var(--muted); max-width: 70ch; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  canvas { display: block; width: 100%; }
+  #world { aspect-ratio: 3 / 2; cursor: crosshair; border-radius: 4px; touch-action: none; }
+  #plot { height: 220px; margin-top: 8px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+  .metrics { display: flex; gap: 18px; flex-wrap: wrap; font-variant-numeric: tabular-nums; margin-top: 8px; }
+  .metrics b { font-weight: 600; }
+  fieldset { border: 0; border-top: 1px solid var(--line); margin: 10px 0 0; padding: 8px 0 0; }
+  legend { font-weight: 600; padding: 0 6px 0 0; }
+  legend small { font-weight: 400; color: var(--muted); }
+  .gain { display: grid; grid-template-columns: 18px 1fr 52px; align-items: center; gap: 8px; margin: 4px 0; }
+  .gain span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  label.check { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  select, button {
+    font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 10px;
+  }
+  button { cursor: pointer; }
+  button:hover, select:hover { border-color: var(--accent); }
+  #presetNote { color: var(--muted); font-size: 12px; min-height: 2.8em; margin: 6px 0 0; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Quadcopter PID sim</h1>
+    <p>A 2D drone with the same cascaded control structure most flight controllers use.
+      Click in the sky to move the target, change the gains, and see what each term does.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <canvas id="world" aria-label="Drone view. Click to set a new target."></canvas>
+      <p class="hint">Click or tap to set a target. The dashed line is the pitch the position loop asks for.</p>
+      <canvas id="plot" aria-label="Position and altitude over time"></canvas>
+      <div class="metrics" id="metrics"></div>
+    </section>
+
+    <aside class="card">
+      <div class="row">
+        <select id="preset" aria-label="Preset"></select>
+        <button id="gust" title="6 m/s gust for 1.5 s">Gust</button>
+        <button id="reset">Reset</button>
+      </div>
+      <p id="presetNote"></p>
+      <div id="gains"></div>
+      <fieldset>
+        <legend>Options</legend>
+        <label class="check"><input type="checkbox" id="antiWindup" checked> Anti-windup</label>
+        <label class="check"><input type="checkbox" id="dOnMeas" checked> Derivative on measurement</label>
+        <label class="check"><input type="checkbox" id="noise"> Sensor noise</label>
+        <label class="check"><input type="checkbox" id="wind"> Steady wind (3 m/s)</label>
+      </fieldset>
+    </aside>
+  </div>
+
+  <footer>Physics at 1 kHz, control at 200 Hz. Rotor lag 40 ms, thrust-to-weight about 2.
+    Source: <a href="https://github.com/WizzardOfOdds/quadcopter-pid-sim">github.com/WizzardOfOdds/quadcopter-pid-sim</a></footer>
+</main>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
